@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Smart Barcode Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .status-badge {
+            font-size: 12px;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
+        
+        .scanner-container {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .scan-area {
+            margin: 20px 0;
+            padding: 30px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            border: 2px dashed #ccc;
+        }
+        
+        .product-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: left;
+        }
+        
+        .product-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .product-brand {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .detail-row {
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+            width: 100px;
+            display: inline-block;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .barcode-display {
+            font-family: monospace;
+            font-size: 16px;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        
+        .nutriscore {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .nutriscore-A { background-color: #007f4e; }
+        .nutriscore-B { background-color: #80b142; }
+        .nutriscore-C { background-color: #ffc20e; color: #333; }
+        .nutriscore-D { background-color: #e67e22; }
+        .nutriscore-E { background-color: #e30613; }
+        
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        .camera-btn {
+            background: #2196F3;
+            font-size: 18px;
+            padding: 15px 30px;
+        }
+        
+        .secondary-btn {
+            background: #6c757d;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        #preview {
+            max-width: 100%;
+            margin: 10px 0;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .scan-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin: 20px;
+        }
+        
+        .scan-item {
+            background: #f9f9f9;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .scan-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .scan-barcode {
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .scan-time {
+            color: #666;
+            font-size: 11px;
+        }
+        
+        .online-badge {
+            background: #28a745;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .offline-badge {
+            background: #dc3545;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin: 5px 5px 0 0;
+        }
+        
+        .view-btn {
+            background: #17a2b8;
+            padding: 5px 10px;
+            font-size: 12px;
+            margin: 5px 0 0 0;
+        }
+        
+        select {
+            padding: 10px;
+            margin: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Smart Barcode Scanner</h1>
+            <div class="status-badge" id="online-status">[ONLINE] Auto lookup enabled</div>
+        </div>
+        
+        <div class="scanner-container">
+            <div class="scan-area">
+                <input type="file" id="camera-input" accept="image/*" capture="environment">
+                <button class="camera-btn" onclick="triggerCamera()">Scan Barcode</button>
+                <img id="preview" alt="Preview">
+                <div id="scan-status" style="margin-top: 15px; font-size: 14px;"></div>
+            </div>
+            
+            <div class="product-card" id="result" style="display: none;">
+                <div class="product-name" id="product-name"></div>
+                <div class="product-brand" id="product-brand"></div>
+                <div class="barcode-display" id="barcode-display"></div>
+                <div class="detail-row">
+                    <span class="detail-label">Type:</span>
+                    <span class="detail-value" id="product-type"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Quantity:</span>
+                    <span class="detail-value" id="product-quantity"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Origin:</span>
+                    <span class="detail-value" id="product-origin"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Categories:</span>
+                    <span class="detail-value" id="product-categories"></span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Nutri-Score:</span>
+                    <span class="detail-value" id="product-nutriscore"></span>
+                </div>
+                <div class="status" id="save-status"></div>
+            </div>
+            
+            <div style="margin: 10px;">
+                <button onclick="manualInput()">Manual Entry</button>
+                <select id="export-format">
+                    <option value="json">JSON format</option>
+                    <option value="csv">CSV (Excel/Sheets)</option>
+                    <option value="txt">Plain Text (readable)</option>
+                </select>
+                <button onclick="exportData()">Export Data</button>
+            </div>
+            
+            <div class="scan-list" id="scan-list">
+                <h3 style="margin-bottom: 10px;">Scan History:</h3>
+                <div id="scans-container"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    
+    <script>
+        // Load saved scans from localStorage
+        let scans = JSON.parse(localStorage.getItem('smart_scans') || '[]');
+        let isOnline = navigator.onLine;
+        
+        // Update online status
+        window.addEventListener('online', () => {
+            isOnline = true;
+            document.getElementById('online-status').innerHTML = '[ONLINE] Auto lookup enabled';
+        });
+        
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            document.getElementById('online-status').innerHTML = '[OFFLINE] Using cached data';
+        });
+        
+        function saveScans() {
+            localStorage.setItem('smart_scans', JSON.stringify(scans));
+            displayScans();
+        }
+        
+        async function lookupProductOnline(barcode) {
+            if (!isOnline) {
+                return null;
+            }
+            
+            try {
+                // Try Open Food Facts API
+                const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+                const data = await response.json();
+                
+                if (data.status === 1) {
+                    const product = data.product;
+                    return {
+                        name: product.product_name || "Unknown Product",
+                        brand: product.brands || "Unknown Brand",
+                        type: "food",
+                        quantity: product.quantity || "N/A",
+                        origin: product.origins || product.origin || "N/A",
+                        categories: product.categories || "N/A",
+                        nutriscore: product.nutriscore_grade ? product.nutriscore_grade.toUpperCase() : "N/A",
+                        nova_group: product.nova_group || "N/A",
+                        source: "online"
+                    };
+                }
+                
+                return null;
+            } catch (error) {
+                console.log("Online lookup failed:", error);
+                return null;
+            }
+        }
+        
+        async function addScan(barcode, customData = null) {
+            const scan = {
+                barcode: barcode,
+                timestamp: new Date().toISOString(),
+                source: "manual"
+            };
+            
+            // Try to lookup product info
+            document.getElementById('scan-status').innerHTML = '<span class="loader"></span> Looking up product information...';
+            
+            let productInfo = null;
+            if (isOnline) {
+                productInfo = await lookupProductOnline(barcode);
+            }
+            
+            if (productInfo) {
+                scan.name = productInfo.name;
+                scan.brand = productInfo.brand;
+                scan.type = productInfo.type;
+                scan.quantity = productInfo.quantity;
+                scan.origin = productInfo.origin;
+                scan.categories = productInfo.categories;
+                scan.nutriscore = productInfo.nutriscore;
+                scan.nova_group = productInfo.nova_group;
+                scan.source = productInfo.source;
+                document.getElementById('scan-status').innerHTML = '[OK] Product found online!';
+            } else {
+                // Manual entry
+                scan.name = customData?.name || prompt("Enter product name:", "Unknown Product") || "Unknown Product";
+                scan.brand = customData?.brand || prompt("Enter brand:", "Unknown Brand") || "Unknown Brand";
+                scan.type = customData?.type || prompt("Enter type (food/beauty/other):", "other") || "other";
+                scan.quantity = customData?.quantity || prompt("Enter quantity:", "N/A") || "N/A";
+                scan.origin = customData?.origin || prompt("Enter origin:", "N/A") || "N/A";
+                scan.categories = customData?.categories || prompt("Enter categories:", "N/A") || "N/A";
+                scan.nutriscore = customData?.nutriscore || "N/A";
+                scan.nova_group = customData?.nova_group || "N/A";
+                scan.source = "manual";
+                document.getElementById('scan-status').innerHTML = '[OK] Saved with manual entry';
+            }
+            
+            scans.unshift(scan);
+            saveScans();
+            displayProduct(scan);
+        }
+        
+        function displayProduct(scan) {
+            document.getElementById('product-name').innerHTML = scan.name;
+            document.getElementById('product-brand').innerHTML = scan.brand;
+            document.getElementById('barcode-display').innerHTML = `Barcode: ${scan.barcode}`;
+            document.getElementById('product-type').innerHTML = scan.type || 'N/A';
+            document.getElementById('product-quantity').innerHTML = scan.quantity || 'N/A';
+            document.getElementById('product-origin').innerHTML = scan.origin || 'N/A';
+            document.getElementById('product-categories').innerHTML = (scan.categories || 'N/A').substring(0, 50);
+            
+            // Display Nutri-Score with color
+            const nutriscore = (scan.nutriscore || 'N/A').toUpperCase();
+            if (nutriscore !== 'N/A' && 'ABCDE'.includes(nutriscore)) {
+                document.getElementById('product-nutriscore').innerHTML = `<span class="nutriscore nutriscore-${nutriscore}">${nutriscore}</span>`;
+            } else {
+                document.getElementById('product-nutriscore').innerHTML = nutriscore;
+            }
+            
+            const sourceBadge = scan.source === 'online' ? '[ONLINE]' : '[MANUAL]';
+            document.getElementById('save-status').innerHTML = `Saved to device ${sourceBadge}`;
+            document.getElementById('save-status').className = 'status success';
+            document.getElementById('result').style.display = 'block';
+        }
+        
+        function triggerCamera() {
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('scan-status').innerHTML = '';
+            document.getElementById('preview').style.display = 'none';
+            document.getElementById('camera-input').value = '';
+            document.getElementById('camera-input').click();
+        }
+        
+        document.getElementById('camera-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const imageUrl = URL.createObjectURL(file);
+            const preview = document.getElementById('preview');
+            preview.src = imageUrl;
+            preview.style.display = 'block';
+            
+            document.getElementById('scan-status').innerHTML = '<span class="loader"></span> Reading barcode...';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                Quagga.decodeSingle({
+                    src: e.target.result,
+                    numOfWorkers: 0,
+                    inputStream: { size: 800, type: "ImageStream" },
+                    decoder: {
+                        readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "upc_reader"]
+                    },
+                    locate: true
+                }, async function(result) {
+                    if (result && result.codeResult) {
+                        const barcode = result.codeResult.code;
+                        await addScan(barcode);
+                    } else {
+                        document.getElementById('scan-status').innerHTML = '[ERROR] No barcode found. Please try again with better lighting.';
+                    }
+                    URL.revokeObjectURL(imageUrl);
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+        
+        function manualInput() {
+            const barcode = prompt("Enter barcode number:");
+            if (barcode && barcode.trim()) {
+                addScan(barcode.trim());
+            }
+        }
+        
+        function displayScans() {
+            const container = document.getElementById('scans-container');
+            if (scans.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">No scans yet. Scan a barcode to get started!</div>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            scans.forEach((scan, index) => {
+                const date = new Date(scan.timestamp);
+                const dateStr = date.toLocaleString();
+                const sourceIcon = scan.source === 'online' ? '[WEB]' : '[MAN]';
+                
+                const div = document.createElement('div');
+                div.className = 'scan-item';
+                div.onclick = () => displayProduct(scan);
+                div.innerHTML = `
+                    <div><strong>${escapeHtml(scan.name)}</strong> - ${escapeHtml(scan.brand)}</div>
+                    <div class="scan-barcode">${scan.barcode} ${sourceIcon}</div>
+                    <div class="scan-time">${dateStr}</div>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteScan(${index})">Delete</button>
+                    <button class="view-btn" onclick="event.stopPropagation(); displayProduct(scan)">View</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function deleteScan(index) {
+            if (confirm('Delete this scan?')) {
+                scans.splice(index, 1);
+                saveScans();
+                if (scans.length === 0) {
+                    document.getElementById('result').style.display = 'none';
+                }
+            }
+        }
+        
+        function exportData() {
+            if (scans.length === 0) {
+                alert('No data to export!');
+                return;
+            }
+            
+            const format = document.getElementById('export-format').value;
+            let dataStr = '';
+            let fileExtension = '';
+            let mimeType = '';
+            
+            if (format === 'json') {
+                // JSON format (structured)
+                dataStr = JSON.stringify(scans, null, 2);
+                fileExtension = 'json';
+                mimeType = 'application/json';
+            } 
+            else if (format === 'csv') {
+                // CSV format for Excel/Sheets
+                const headers = ['Barcode', 'Timestamp', 'Name', 'Brand', 'Type', 'Quantity', 'Origin', 'Categories', 'NutriScore', 'Source'];
+                const rows = scans.map(scan => [
+                    scan.barcode,
+                    scan.timestamp,
+                    `"${(scan.name || '').replace(/"/g, '""')}"`,
+                    `"${(scan.brand || '').replace(/"/g, '""')}"`,
+                    scan.type || '',
+                    scan.quantity || '',
+                    `"${(scan.origin || '').replace(/"/g, '""')}"`,
+                    `"${(scan.categories || '').replace(/"/g, '""')}"`,
+                    scan.nutriscore || '',
+                    scan.source || ''
+                ]);
+                
+                dataStr = [headers, ...rows].map(row => row.join(',')).join('\n');
+                fileExtension = 'csv';
+                mimeType = 'text/csv';
+            }
+            else if (format === 'txt') {
+                // Plain text, human-readable format
+                let txtLines = [];
+                txtLines.push('='.repeat(60));
+                txtLines.push('SMART BARCODE SCANNER EXPORT');
+                txtLines.push(`Export Date: ${new Date().toLocaleString()}`);
+                txtLines.push(`Total Scans: ${scans.length}`);
+                txtLines.push('='.repeat(60));
+                txtLines.push('');
+                
+                scans.forEach((scan, index) => {
+                    txtLines.push(`[SCAN ${index + 1}]`);
+                    txtLines.push(`  Barcode:     ${scan.barcode}`);
+                    txtLines.push(`  Date/Time:   ${new Date(scan.timestamp).toLocaleString()}`);
+                    txtLines.push(`  Product:     ${scan.name || 'Unknown'}`);
+                    txtLines.push(`  Brand:       ${scan.brand || 'Unknown'}`);
+                    txtLines.push(`  Type:        ${scan.type || 'N/A'}`);
+                    txtLines.push(`  Quantity:    ${scan.quantity || 'N/A'}`);
+                    txtLines.push(`  Origin:      ${scan.origin || 'N/A'}`);
+                    txtLines.push(`  Categories:  ${scan.categories || 'N/A'}`);
+                    txtLines.push(`  Nutri-Score: ${scan.nutriscore || 'N/A'}`);
+                    txtLines.push(`  Source:      ${scan.source || 'manual'}`);
+                    txtLines.push('');
+                    txtLines.push('-'.repeat(40));
+                    txtLines.push('');
+                });
+                
+                dataStr = txtLines.join('\n');
+                fileExtension = 'txt';
+                mimeType = 'text/plain';
+            }
+            
+            const dataUri = 'data:' + mimeType + ';charset=utf-8,' + encodeURIComponent(dataStr);
+            const exportFileDefaultName = `barcode_export_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.${fileExtension}`;
+            
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Display scans on load
+        displayScans();
+        
+        // Check online status on load
+        if (!isOnline) {
+            document.getElementById('online-status').innerHTML = '[OFFLINE] Using cached data';
+        }
+    </script>
+</body>
+</html>
